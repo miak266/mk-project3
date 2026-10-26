@@ -19,7 +19,7 @@ outputs:
 
 settings:
   default_datastore: azureml:workspaceblobstore
-  default_compute: azureml:ml-training-cluster
+  default_compute: azureml:ml-training-cluster2
   continue_on_step_failure: false
 
 jobs:
