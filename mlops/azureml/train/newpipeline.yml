@@ -2,14 +2,14 @@
 $schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
 
 type: pipeline
-display_name: used-cars-training-pipeline
-experiment_name: used-cars-price-prediction
-description: Used cars price prediction training pipeline
+display_name: machine-failure-training-pipeline
+experiment_name: machine-failure-prediction
+description: Machine failure prediction and hyperparameter tuning
 
 inputs:
   raw_data:
     type: uri_file
-    path: azureml:used-cars-data@latest
+    path: azureml:machine-failure-data@latest
 
 outputs:
   train_data:
@@ -25,7 +25,7 @@ settings:
 jobs:
   prep_data:
     name: prep_data
-    display_name: prepare-data
+    display_name: prepare-machine-data
     type: command
     code: ../../../data-science/src
 
@@ -46,35 +46,30 @@ jobs:
 
   sweep_step:
     name: sweep_step
-    display_name: hyperparameter-sweep
+    display_name: tune-machine-failure-model
     type: sweep
 
     inputs:
       train_data: ${{parent.jobs.prep_data.outputs.train_data}}
       test_data: ${{parent.jobs.prep_data.outputs.test_data}}
 
-    outputs:
-      model_output:
-        type: mlflow_model
-
     sampling_algorithm: random
-
     trial: ./train.yml
 
     search_space:
       n_estimators:
         type: choice
-        values: [10, 20, 30, 50]
+        values: [50, 100, 150, 200]
 
       max_depth:
         type: choice
         values: [5, 10, 15, 20]
 
     objective:
-      goal: minimize
-      primary_metric: MSE
+      goal: maximize
+      primary_metric: F1
 
     limits:
-      max_total_trials: 20
-      max_concurrent_trials: 10
+      max_total_trials: 12
+      max_concurrent_trials: 2
       timeout: 7200
