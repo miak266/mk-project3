@@ -1,6 +1,11 @@
+
 $schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
 
-name: used-cars-train-env  # Provide the name for the environment
-image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+name: used-cars-train-env
+version: "2"
+
+image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04:latest
+
 conda_file: ../../../data-science/environment/train-conda.yml
-description: ___________________ # Provide the name for the environment
+
+description: Machine failure prediction training environment with Python 3.11
