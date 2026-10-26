@@ -2,9 +2,9 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 
 type: command
-name: used_cars_train
-display_name: used-cars-model-training
-version: 1
+name: machine_failure_train
+display_name: machine-failure-model-training
+version: "1"
 
 inputs:
   train_data:
@@ -25,7 +25,7 @@ outputs:
 
 code: ../../../data-science/src
 
-environment: azureml:used-cars-train-env@latest
+environment: azureml:used-cars-train-env:2
 
 command: >-
   python train.py
