@@ -4,7 +4,7 @@ $schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
 type: pipeline
 display_name: used-cars-training-pipeline
 experiment_name: used-cars-price-prediction
-description: Used cars price prediction training and hyperparameter tuning
+description: Used cars price prediction training pipeline
 
 inputs:
   raw_data:
@@ -23,7 +23,6 @@ settings:
   continue_on_step_failure: false
 
 jobs:
-
   prep_data:
     name: prep_data
     display_name: prepare-data
@@ -54,24 +53,13 @@ jobs:
       train_data: ${{parent.jobs.prep_data.outputs.train_data}}
       test_data: ${{parent.jobs.prep_data.outputs.test_data}}
 
-    sampling_algorithm: random
-
-    trial:
-      code: ../../../data-science/src
-
-      command: >-
-        python train.py
-        --train_data ${{inputs.train_data}}
-        --test_data ${{inputs.test_data}}
-        --n_estimators ${{search_space.n_estimators}}
-        --max_depth ${{search_space.max_depth}}
-        --model_output ${{outputs.model_output}}
-
-      environment: azureml:used-cars-train-env@latest
-
     outputs:
       model_output:
         type: mlflow_model
+
+    sampling_algorithm: random
+
+    trial: ./train.yml
 
     search_space:
       n_estimators:
