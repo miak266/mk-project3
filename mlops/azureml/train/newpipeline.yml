@@ -16,17 +16,15 @@ inputs:
 outputs:
   train_data:
     type: uri_folder
-
   test_data:
     type: uri_folder
 
 settings:
   default_datastore: azureml:workspaceblobstore
-  default_compute: azureml:ml-training-cluster2
+  default_compute: azureml:cpu-cluster
   continue_on_step_failure: false
 
 jobs:
-
   prep_data:
     name: prep_data
     display_name: prepare-used-cars-data
