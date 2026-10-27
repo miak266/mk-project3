@@ -2,9 +2,11 @@
 $schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
 
 type: pipeline
-display_name: machine-failure-training-pipeline
-experiment_name: machine-failure-prediction
-description: Machine failure prediction and hyperparameter tuning
+
+display_name: used-cars-price-prediction-pipeline
+experiment_name: used-cars-price-prediction
+
+description: Used-car price prediction using Random Forest Regression
 
 inputs:
   raw_data:
@@ -14,6 +16,7 @@ inputs:
 outputs:
   train_data:
     type: uri_folder
+
   test_data:
     type: uri_folder
 
@@ -23,10 +26,12 @@ settings:
   continue_on_step_failure: false
 
 jobs:
+
   prep_data:
     name: prep_data
-    display_name: prepare-machine-data
+    display_name: prepare-used-cars-data
     type: command
+
     code: ../../../data-science/src
 
     command: >-
@@ -46,7 +51,7 @@ jobs:
 
   sweep_step:
     name: sweep_step
-    display_name: tune-machine-failure-model
+    display_name: tune-used-cars-price-model
     type: sweep
 
     inputs:
@@ -67,8 +72,8 @@ jobs:
         values: [5, 10, 15, 20]
 
     objective:
-      goal: maximize
-      primary_metric: F1
+      goal: minimize
+      primary_metric: MSE
 
     limits:
       max_total_trials: 12
