@@ -1,59 +1,84 @@
 
-# Copyright (c) Microsoft Corporation. All rights reserved.
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
 """
-Prepares raw data and provides training and test datasets.
+Prepare used-cars data for price prediction.
 """
 
 import argparse
-from pathlib import Path
 import os
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
 import mlflow
+
+from sklearn.model_selection import train_test_split
 
 
 def parse_args():
-    """Parse input arguments"""
-
     parser = argparse.ArgumentParser("prep")
 
-    parser.add_argument("--raw_data", type=str, help="Path to raw data")
-    parser.add_argument("--train_data", type=str, help="Path to train dataset")
-    parser.add_argument("--test_data", type=str, help="Path to test dataset")
-    parser.add_argument(
-        "--test_train_ratio",
-        type=float,
-        default=0.2,
-        help="Test-train ratio"
-    )
+    parser.add_argument("--raw_data", type=str, required=True)
+    parser.add_argument("--train_data", type=str, required=True)
+    parser.add_argument("--test_data", type=str, required=True)
+    parser.add_argument("--test_train_ratio", type=float, default=0.2)
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main(args):
-    """Read, preprocess, split, and save datasets"""
 
-    # Reading Data
+    # Load used-cars dataset
     df = pd.read_csv(args.raw_data)
 
-    # Encode categorical feature
-    le = LabelEncoder()
+    print("Dataset columns:", df.columns.tolist())
 
-    # TODO: Replace COLUMN_NAME with the actual categorical column
-    df["COLUMN_NAME"] = le.fit_transform(df["COLUMN_NAME"])
+    # Validate price column
+    if "price" not in df.columns:
+        raise ValueError("Column 'price' not found in dataset.")
 
-    # Split Data into train and test datasets
-    train_df, test_df = train_test_split(
-        df,
+    # Remove rows without a valid price
+    df["price"] = pd.to_numeric(df["price"], errors="coerce")
+    df = df.dropna(subset=["price"]).copy()
+
+    # Separate features and target
+    X = df.drop(columns=["price"])
+    y = df["price"]
+
+    # Split before preprocessing
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
         test_size=args.test_train_ratio,
         random_state=42
     )
 
-    # Save the train and test data
+    # Encode categorical columns
+    X_train = pd.get_dummies(X_train, dtype=int)
+    X_test = pd.get_dummies(X_test, dtype=int)
+
+    # Ensure identical columns
+    X_test = X_test.reindex(
+        columns=X_train.columns,
+        fill_value=0
+    )
+
+    # Handle missing values using training medians
+    X_train = X_train.apply(pd.to_numeric, errors="coerce")
+    X_test = X_test.apply(pd.to_numeric, errors="coerce")
+
+    medians = X_train.median().fillna(0)
+
+    X_train = X_train.fillna(medians)
+    X_test = X_test.fillna(medians)
+
+    # Reattach target column
+    train_df = X_train.copy()
+    train_df["price"] = y_train.to_numpy()
+
+    test_df = X_test.copy()
+    test_df["price"] = y_test.to_numpy()
+
+    # Save output files
     os.makedirs(args.train_data, exist_ok=True)
     os.makedirs(args.test_data, exist_ok=True)
 
@@ -67,28 +92,17 @@ def main(args):
         index=False
     )
 
-    # Log the metrics
-    mlflow.log_metric("train size", train_df.shape[0])
-    mlflow.log_metric("test size", test_df.shape[0])
+    # Log dataset sizes
+    mlflow.log_metric("train_size", len(train_df))
+    mlflow.log_metric("test_size", len(test_df))
+
+    print("Used-cars data preparation completed.")
+    print("Training records:", len(train_df))
+    print("Testing records:", len(test_df))
 
 
 if __name__ == "__main__":
-
-    mlflow.start_run()
-
-    # Parse arguments
     args = parse_args()
 
-    lines = [
-        f"Raw data path: {args.raw_data}",
-        f"Train dataset output path: {args.train_data}",
-        f"Test dataset path: {args.test_data}",
-        f"Test-train ratio: {args.test_train_ratio}",
-    ]
-
-    for line in lines:
-        print(line)
-
-    main(args)
-
-    mlflow.end_run()
+    with mlflow.start_run():
+        main(args)
