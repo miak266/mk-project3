@@ -5,7 +5,6 @@ type: pipeline
 
 display_name: used-cars-price-prediction-pipeline
 experiment_name: used-cars-price-prediction
-
 description: Used-car price prediction using Random Forest Regression
 
 inputs:
@@ -21,7 +20,7 @@ outputs:
 
 settings:
   default_datastore: azureml:workspaceblobstore
-  default_compute: azureml:cpu-cluster
+  default_compute: azureml:test-cluster
   continue_on_step_failure: false
 
 jobs:
@@ -57,7 +56,6 @@ jobs:
       test_data: ${{parent.jobs.prep_data.outputs.test_data}}
 
     sampling_algorithm: random
-
     trial: ./train.yml
 
     search_space:
