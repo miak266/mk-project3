@@ -2,9 +2,12 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 
 type: command
-name: machine_failure_train
-display_name: machine-failure-model-training
+
+name: used_cars_train
+display_name: used-cars-price-training
 version: "1"
+
+description: Train Random Forest regression model for used-car price prediction
 
 inputs:
   train_data:
@@ -25,7 +28,7 @@ outputs:
 
 code: ../../../data-science/src
 
-environment: azureml:used-cars-train-env:2
+environment: azureml:used-cars-train-env:3
 
 command: >-
   python train.py
