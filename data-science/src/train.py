@@ -1,85 +1,101 @@
-# Copyright (c) Microsoft Corporation. All rights reserved.
+
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+
 """
-Trains ML model using training dataset and evaluates using test dataset. Saves trained model.
+Train and evaluate a used-car price prediction model.
 """
 
 import argparse
 from pathlib import Path
+
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
 import mlflow
 import mlflow.sklearn
 
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+
+
 def parse_args():
-    '''Parse input arguments'''
-
     parser = argparse.ArgumentParser("train")
-    parser.add_argument("--train_data", type=_______, help="Path to train dataset")  # Specify the type for train_data
-    parser.add_argument("--test_data", type=_______, help="Path to test dataset")  # Specify the type for test_data
-    parser.add_argument("--model_output", type=_______, help="Path of output model")  # Specify the type for model_output
-    parser.add_argument('--n_estimators', type=_______, default=_____,
-                        help='The number of trees in the forest')  # Specify the type and default value for n_estimators
-    parser.add_argument('--max_depth', type=_______, default=_______,
-                        help='The maximum depth of the tree')  # Specify the type and default value for max_depth
 
-    args = parser.parse_args()
+    parser.add_argument("--train_data", type=str, required=True)
+    parser.add_argument("--test_data", type=str, required=True)
+    parser.add_argument("--model_output", type=str, required=True)
 
-    return args
+    parser.add_argument(
+        "--n_estimators",
+        type=int,
+        default=100
+    )
+
+    parser.add_argument(
+        "--max_depth",
+        type=int,
+        default=10
+    )
+
+    return parser.parse_args()
+
 
 def main(args):
-    '''Read train and test datasets, train model, evaluate model, save trained model'''
 
-    # Read train and test data from _______
-    train_df = pd.________(Path(args.train_data) / "______.csv")
-    test_df = pd.________(Path(args.test_data) / "______.csv")
+    # Read training and testing datasets
+    train_df = pd.read_csv(
+        Path(args.train_data) / "train.csv"
+    )
 
-    # Split the data into ______(X) and ______(y) 
-    y_train = train_df['______']  # Specify the target column
-    X_train = train_df.drop(columns=['______'])
-    y_test = test_df['______']
-    X_test = test_df.drop(columns=['______'])
+    test_df = pd.read_csv(
+        Path(args.test_data) / "test.csv"
+    )
 
-    # Initialize and train a RandomForest Regressor
-    model = RandomForestRegressor(n_estimators=args.n_estimators, max_depth=args.______, random_state=42)  # Provide the arguments for RandomForestRegressor
-    model.________(X_train, y_train)  # Train the model
+    # Separate features and target
+    y_train = train_df["price"]
+    X_train = train_df.drop(columns=["price"])
 
-    # Log model hyperparameters
-    mlflow.log_param("model", "_________")  # Provide the model name
+    y_test = test_df["price"]
+    X_test = test_df.drop(columns=["price"])
+
+    # Create Random Forest regression model
+    model = RandomForestRegressor(
+        n_estimators=args.n_estimators,
+        max_depth=args.max_depth,
+        random_state=42,
+        n_jobs=-1
+    )
+
+    # Train the model
+    model.fit(X_train, y_train)
+
+    # Predict used-car prices
+    predictions = model.predict(X_test)
+
+    # Calculate Mean Squared Error
+    mse = mean_squared_error(y_test, predictions)
+
+    # Log model parameters
+    mlflow.log_param("model", "RandomForestRegressor")
     mlflow.log_param("n_estimators", args.n_estimators)
-    mlflow.log_param("max_depth", args.______)
+    mlflow.log_param("max_depth", args.max_depth)
 
-    # Predict using the RandomForest Regressor on test data
-    yhat_test = model._______(X_test)  # Predict the test data
+    # Log evaluation metric
+    mlflow.log_metric("MSE", float(mse))
 
-    # Compute and log mean squared error for test data
-    mse = mean_squared_error(y_test, yhat_test)
-    print('Mean Squared Error of RandomForest Regressor on test set: {:.2f}'.format(mse))
-    mlflow.log_metric("MSE", float(mse))  # Log the MSE
+    print(f"Mean Squared Error: {mse:.4f}")
 
-    # Save the model
-    mlflow.sklearn.________(sk_model=model, path=args.model_output)  # Save the model
+    # Save the trained model
+    mlflow.sklearn.save_model(
+        sk_model=model,
+        path=args.model_output
+    )
+
+    print("Model training completed successfully.")
+
 
 if __name__ == "__main__":
-    
-    mlflow.start_run()
 
-    # Parse Arguments
     args = parse_args()
 
-    lines = [
-        f"Train dataset input path: {args.train_data}",
-        f"Test dataset input path: {args.test_data}",
-        f"Model output path: {args.model_output}",
-        f"Number of Estimators: {args.n_estimators}",
-        f"Max Depth: {args.max_depth}"
-    ]
-
-    for line in lines:
-        print(line)
-
-    main(args)
-
-    mlflow.end_run()
-
+    with mlflow.start_run():
+        main(args)
